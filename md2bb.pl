@@ -38,8 +38,13 @@
 # TODO:  Support formatting in tables.
 # TODO:  Add an option to escape BBCode that the markdown file may contain.
 # TODO:  Align text properly in tables.
+# TODO:  Allow generation of BBCode for other Websites than Planet Casio.
+# TODO:  Handle horizontal lines.
 # FIXME: The tags for formatting inside of a paragraph are sometimes in the
 #        wrong order.
+
+# NOTE:  Formatting with underscores and Setext-style headers are not
+#        supported.
 
 my $header = 1;
 my $quote = 0;
