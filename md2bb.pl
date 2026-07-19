@@ -35,22 +35,79 @@
 
 # FIXME: Some (non-)regular expressions used here are very inefficient.
 
-my $text = "";
-
 my $header = 1;
 my $quote = 0;
+
+my $paragraph = "";
+
+my @header_start = (
+    '[color=DarkRed][big][big][b][i]',
+    '[color=DarkRed][big][b][i]',
+    '[color=DarkRed][b][i]',
+    '[color=DarkRed][b]',
+    '[color=DarkRed][i]',
+    '[color=DarkRed]'
+);
+
+my @header_end = (
+    '[/i][/b][/big][/big][/color]',
+    '[/i][/b][/big][/color]',
+    '[/i][/b]][/color]',
+    '[/b][/color]',
+    '[/i][/color]',
+    '[/color]'
+);
+
+sub output_paragraph {
+    my $paragraph = shift;
+
+    print "$paragraph\n\n";
+}
+
+sub output_paragraph_inline {
+    my $paragraph = shift;
+
+    print "$paragraph";
+}
 
 while (<>) {
     # Handle quotes
     s/^((( {0,3}|\t)\>)+) ?//;
     my $indent = () = $1 =~ /\>/g;
     while($indent > $quote){
+        if($paragraph ne ""){
+            output_paragraph $paragraph;
+            $paragraph = "";
+        }
         print "\[quote\]\n";
         $quote++;
     }
     while($indent < $quote){
+        if($paragraph ne ""){
+            output_paragraph $paragraph;
+            $paragraph = "";
+        }
         print "\[\/quote\]\n";
         $quote--;
+    }
+
+    # Handle headers
+    if(/^#+/){
+        if($paragraph ne ""){
+            output_paragraph $paragraph;
+            $paragraph = "";
+        }
+        s/^(#{0,6})[[:space:]]*//;
+        $level = () = $1 =~ /#/g;
+        s/[[:space:]]*#*$//;
+
+        print $header_start[$level-1];
+        chomp;
+        output_paragraph_inline $_;
+        print $header_end[$level-1];
+        print "\n\n";
+
+        $_ = "";
     }
 
     # Handle tables
@@ -60,6 +117,10 @@ while (<>) {
         s/\|$//;
         s/\|([^\|\n]+)/\[td\]$1\[\/td\]/g;
         if ($header){
+            if($paragraph ne ""){
+                output_paragraph $paragraph;
+                $paragraph = "";
+            }
             print "[table]\n";
             print "[th]$_\[\/th\]\n";
         }else{
@@ -70,10 +131,19 @@ while (<>) {
             print "\[\/table\]\n";
         }
         $header = 1;
-        print;
+        if(/^[[:space:]]*$/ && $paragraph ne ""){
+            output_paragraph $paragraph;
+            $paragraph = "";
+        }
+        chomp;
+        s/  $/\n/;
+        s/([^\n])$/$1 /m;
+        $paragraph .= $_;
     }
 }
 # End a table that wasn't closed yet
 if(!$header){
     print "\[\/table\]\n";
+}elsif($paragraph ne ""){
+    output_paragraph $paragraph;
 }
