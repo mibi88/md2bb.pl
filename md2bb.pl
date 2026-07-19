@@ -62,14 +62,78 @@ my @header_end = (
     '[/color]'
 );
 
+sub format_paragraph {
+    my $paragraph = shift;
+
+    my @pieces = split /`/, $paragraph;
+
+    my $new_paragraph = "";
+    my $code = 0;
+
+    my $bold = '[b]';
+    my $italic = '[i]';
+    my $strike = '[strike]';
+
+    my $start_code = '[color=DarkRed][b]`';
+    my $end_code = '`[/b][/color]';
+
+    my $i = 0;
+    foreach my $piece (@pieces) {
+        if (!$code){
+            while ($piece =~ s/\*\*/$bold/){
+                unless ($bold =~ s/\[\//\[/){
+                    $bold =~ s/\[([^\/])/\[\/$1/;
+                }
+            }
+            while ($piece =~ s/\*/$italic/){
+                unless ($italic =~ s/\[\//\[/){
+                    $italic =~ s/\[([^\/])/\[\/$1/;
+                }
+            }
+            while ($piece =~ s/~~/$strike/){
+                unless ($strike =~ s/\[\//\[/){
+                    $strike =~ s/\[([^\/])/\[\/$1/;
+                }
+            }
+        }
+        $new_paragraph .= "$piece";
+        if ($i != $#pieces){
+            if ($code){
+                $new_paragraph .= $end_code;
+            }else{
+                $new_paragraph .= $start_code;
+            }
+        }
+
+        $code = !$code;
+        $i++;
+    }
+
+    if ($bold =~ /\[\//){
+        $new_paragraph .= $bold;
+    }
+    if ($italic =~ /\[\//){
+        $new_paragraph .= $italic;
+    }
+    if ($strike =~ /\[\//){
+        $new_paragraph .= $strike;
+    }
+
+    return $new_paragraph;
+}
+
 sub output_paragraph {
     my $paragraph = shift;
+
+    $paragraph = format_paragraph $paragraph;
 
     print "$paragraph\n\n";
 }
 
 sub output_paragraph_inline {
     my $paragraph = shift;
+
+    $paragraph = format_paragraph $paragraph;
 
     print "$paragraph";
 }
@@ -78,24 +142,24 @@ while (<>) {
     # Handle quotes
     s/^((( {0,3}|\t)\>)+) ?//;
     my $indent = () = $1 =~ /\>/g;
-    while($indent > $quote){
-        if($paragraph ne ""){
+    while ($indent > $quote){
+        if ($paragraph ne ""){
             output_paragraph $paragraph;
             $paragraph = "";
         }
-        if($code){
+        if ($code){
             print '[/code]';
             $code = 0;
         }
         print "\[quote\]\n";
         $quote++;
     }
-    while($indent < $quote){
-        if($paragraph ne ""){
+    while ($indent < $quote){
+        if ($paragraph ne ""){
             output_paragraph $paragraph;
             $paragraph = "";
         }
-        if($code){
+        if ($code){
             print '[/code]';
             $code = 0;
         }
@@ -105,33 +169,33 @@ while (<>) {
 
     # Handle indented code
 
-    if(!$code_block && !$list && s/^( {4}|\t)//){
-        if(!$code){
-            if($paragraph ne ""){
+    if (!$code_block && !$list && s/^( {4}|\t)//){
+        if (!$code){
+            if ($paragraph ne ""){
                 output_paragraph $paragraph;
                 $paragraph = "";
             }
             print "\[code\]\n";
         }
         $code = 1;
-    }elsif($code){
+    }elsif ($code){
         print "\[\/code\]\n";
         $code = 0;
     }
 
-    if($code_block && /^```/){
+    if ($code_block && /^```/){
         print "\[\/code\]\n";
         $code_block = 0;
         next;
     }
 
-    if($code || $code_block){
+    if ($code || $code_block){
         print;
         next;
     }
 
-    if(!$code_block && /^```/){
-        if($paragraph ne ""){
+    if (!$code_block && /^```/){
+        if ($paragraph ne ""){
             output_paragraph $paragraph;
             $paragraph = "";
         }
@@ -141,8 +205,8 @@ while (<>) {
     }
 
     # Handle headers
-    if(/^#+/){
-        if($paragraph ne ""){
+    if (/^#+/){
+        if ($paragraph ne ""){
             output_paragraph $paragraph;
             $paragraph = "";
         }
@@ -160,13 +224,13 @@ while (<>) {
     }
 
     # Handle tables
-    if(/(\|[[:space:]]*:?-{3,}:?[[:space:]]*)+\|/){
+    if (/(\|[[:space:]]*:?-{3,}:?[[:space:]]*)+\|/){
         $header = 0;
-    }elsif(/(\|[^|]+)+\|/){
+    }elsif (/(\|[^|]+)+\|/){
         s/\|$//;
         if ($header){
             s/\|([^\|\n]+)/\[th\]$1\[\/th\]/g;
-            if($paragraph ne ""){
+            if ($paragraph ne ""){
                 output_paragraph $paragraph;
                 $paragraph = "";
             }
@@ -176,11 +240,11 @@ while (<>) {
         }
         print "[tr]$_\[\/tr\]\n";
     }else{
-        if(!$header){
+        if (!$header){
             print "\[\/table\]\n";
         }
         $header = 1;
-        if(/^[[:space:]]*$/ && $paragraph ne ""){
+        if (/^[[:space:]]*$/ && $paragraph ne ""){
             output_paragraph $paragraph;
             $paragraph = "";
         }
@@ -191,8 +255,8 @@ while (<>) {
     }
 }
 # End a table that wasn't closed yet
-if(!$header){
+if (!$header){
     print "\[\/table\]\n";
-}elsif($paragraph ne ""){
+}elsif ($paragraph ne ""){
     output_paragraph $paragraph;
 }

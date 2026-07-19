@@ -4,7 +4,7 @@
 #### Header 4
 ##### Header 5
 ###### Header 6
-*italic (`*`)* _italic (`_`)_ **bold (`**`)** __bold (`__`)__ ~~strikethrough~~
+*italic (`*`)* **bold (`**`)** ~~strikethrough~~
 
 This
 is
