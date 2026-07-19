@@ -33,11 +33,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# FIXME: Some (non-)regular expressions used here are very inefficient.
+# FIXME: Some regular expressions used here are very inefficient.
 
-# TODO: Support formatting in tables.
-# TODO: Add an option to escape BBCode that the markdown file may contain.
-# TODO: Align text properly in tables.
+# TODO:  Support formatting in tables.
+# TODO:  Add an option to escape BBCode that the markdown file may contain.
+# TODO:  Align text properly in tables.
+# FIXME: The tags for formatting inside of a paragraph are sometimes in the
+#        wrong order.
 
 my $header = 1;
 my $quote = 0;
@@ -104,12 +106,10 @@ sub format_paragraph {
             $piece =~ s/\[([^]]*)\]\(([^)]*)\)/\[url=$2\]$1\[\/url\]/g;
         }
         $new_paragraph .= "$piece";
-        if ($i != $#pieces){
-            if ($code){
-                $new_paragraph .= $end_code;
-            }else{
-                $new_paragraph .= $start_code;
-            }
+        if ($i != $#pieces && !$code){
+            $new_paragraph .= $start_code;
+        }elsif($code){
+            $new_paragraph .= $end_code;
         }
 
         $code = !$code;
