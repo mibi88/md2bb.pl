@@ -37,6 +37,7 @@
 
 # TODO: Support formatting in tables.
 # TODO: Add an option to escape BBCode that the markdown file may contain.
+# TODO: Align text properly in tables.
 
 my $header = 1;
 my $quote = 0;
@@ -231,35 +232,59 @@ while (<>) {
     # Handle lists
     if (((!$list && $paragraph eq "") || $list)
         && s/^([[:space:]]*)([0-9]+.|[*+-])[[:space:]]+//){
+        my $type = $2;
+        $indent = () = $1 =~ / {4}/g;
+        $indent++;
         if ($paragraph ne ""){
             output_paragraph_inline $paragraph;
             $paragraph = "";
         }
         if (!$list){
-            if ($2 =~ /[*+-]/){
+            if ($type =~ /[*+-]/){
                 print "\[list\]\n";
+                $list++;
                 $ordered = 0;
             }else{
                 print "\[list=ol\]\n";
+                $list++;
                 $ordered = 1;
             }
             print "\[li\]";
         }else{
             print "\[\/li\]\n";
-            if ($2 =~ /[*+-]/){
-                if ($ordered){
+            if ($type =~ /[*+-]/){
+                if ($ordered && $list == $indent){
                     print "\[\/list\]\n";
                     print "\[list\]\n";
-                    $ordered = 0;
                 }
-            }elsif (!$ordered){
-                print "\[\/list\]\n";
-                print "\[list=ol\]\n";
+
+                while($list > $indent){
+                    print "\[\/list\]\n";
+                    $list--;
+                }
+                while($list < $indent){
+                    print "\[list\]\n";
+                    $list++;
+                }
+                $ordered = 0;
+            }else{
+                if (!$ordered && $list == $indent){
+                    print "\[\/list\]\n";
+                    print "\[list=ol\]\n";
+                }
+
+                while($list > $indent){
+                    print "\[\/list\]\n";
+                    $list--;
+                }
+                while($list < $indent){
+                    print "\[list=ol\]\n";
+                    $list++;
+                }
                 $ordered = 1;
             }
             print "\[li\]";
         }
-        $list = 1;
     }
 
     # Handle tables
@@ -287,8 +312,10 @@ while (<>) {
             if ($list){
                 output_paragraph_inline $paragraph;
                 print "\[\/li\]\n";
-                print "\[\/list\]\n\n";
-                $list = 0;
+                while($list){
+                    print "\[\/list\]\n";
+                    $list--;
+                }
             }else{
                 output_paragraph $paragraph;
             }
