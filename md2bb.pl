@@ -1,3 +1,5 @@
+#!/usr/bin/perl
+
 # md2bb.pl -- A small markdown to BBCode converter.
 # by Mibi88
 #
@@ -31,11 +33,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# FIXME: Some (non-)regular expressions used here are very inefficient.
+
 my $text = "";
 
 my $header = 1;
+my $quote = 0;
 
 while (<>) {
+    # Handle quotes
+    s/^((( {0,3}|\t)\>)+) ?//;
+    my $indent = () = $1 =~ /\>/g;
+    while($indent > $quote){
+        print "\[quote\]\n";
+        $quote++;
+    }
+    while($indent < $quote){
+        print "\[\/quote\]\n";
+        $quote--;
+    }
+
+    # Handle tables
     if(/(\|[[:space:]]*:?-{3,}:?[[:space:]]*)+\|/){
         $header = 0;
     }elsif(/(\|[^|]+)+\|/){
@@ -55,6 +73,7 @@ while (<>) {
         print;
     }
 }
+# End a table that wasn't closed yet
 if(!$header){
     print "\[\/table\]\n";
 }
