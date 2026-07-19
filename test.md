@@ -12,6 +12,9 @@ a
 paragraph  
 with a line break.
 
+[Example Web site](https://www.example.com/)
+![Markdown logo](https://upload.wikimedia.org/wikipedia/commons/4/48/Markdown-mark.svg)
+
     Code
 
 ```C

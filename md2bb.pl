@@ -35,6 +35,9 @@
 
 # FIXME: Some (non-)regular expressions used here are very inefficient.
 
+# TODO: Support formatting in tables.
+# TODO: Add an option to escape BBCode that the markdown file may contain.
+
 my $header = 1;
 my $quote = 0;
 
@@ -43,6 +46,7 @@ my $paragraph = "";
 my $code_block = 0;
 my $code = 0;
 my $list = 0;
+my $ordered = 0;
 
 my @header_start = (
     '[color=DarkRed][big][big][b][i]',
@@ -95,6 +99,8 @@ sub format_paragraph {
                     $strike =~ s/\[([^\/])/\[\/$1/;
                 }
             }
+            $piece =~ s/!\[([^]]*)\]\(([^)]*)\)/\[img\]$2\[\/img\]/g;
+            $piece =~ s/\[([^]]*)\]\(([^)]*)\)/\[url=$2\]$1\[\/url\]/g;
         }
         $new_paragraph .= "$piece";
         if ($i != $#pieces){
@@ -167,15 +173,14 @@ while (<>) {
         $quote--;
     }
 
-    # Handle indented code
-
+    # Handle code
     if (!$code_block && !$list && s/^( {4}|\t)//){
         if (!$code){
             if ($paragraph ne ""){
                 output_paragraph $paragraph;
                 $paragraph = "";
             }
-            print "\[code\]\n";
+            print "\[code\]";
         }
         $code = 1;
     }elsif ($code){
@@ -199,7 +204,7 @@ while (<>) {
             output_paragraph $paragraph;
             $paragraph = "";
         }
-        print "\[code\]\n";
+        print "\[code\]";
         $code_block = 1;
         next;
     }
@@ -221,6 +226,40 @@ while (<>) {
         print "\n\n";
 
         $_ = "";
+    }
+
+    # Handle lists
+    if (((!$list && $paragraph eq "") || $list)
+        && s/^([[:space:]]*)([0-9]+.|[*+-])[[:space:]]+//){
+        if ($paragraph ne ""){
+            output_paragraph_inline $paragraph;
+            $paragraph = "";
+        }
+        if (!$list){
+            if ($2 =~ /[*+-]/){
+                print "\[list\]\n";
+                $ordered = 0;
+            }else{
+                print "\[list=ol\]\n";
+                $ordered = 1;
+            }
+            print "\[li\]";
+        }else{
+            print "\[\/li\]\n";
+            if ($2 =~ /[*+-]/){
+                if ($ordered){
+                    print "\[\/list\]\n";
+                    print "\[list\]\n";
+                    $ordered = 0;
+                }
+            }elsif (!$ordered){
+                print "\[\/list\]\n";
+                print "\[list=ol\]\n";
+                $ordered = 1;
+            }
+            print "\[li\]";
+        }
+        $list = 1;
     }
 
     # Handle tables
@@ -245,7 +284,14 @@ while (<>) {
         }
         $header = 1;
         if (/^[[:space:]]*$/ && $paragraph ne ""){
-            output_paragraph $paragraph;
+            if ($list){
+                output_paragraph_inline $paragraph;
+                print "\[\/li\]\n";
+                print "\[\/list\]\n\n";
+                $list = 0;
+            }else{
+                output_paragraph $paragraph;
+            }
             $paragraph = "";
         }
         chomp;
