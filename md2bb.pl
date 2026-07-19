@@ -40,6 +40,10 @@ my $quote = 0;
 
 my $paragraph = "";
 
+my $code_block = 0;
+my $code = 0;
+my $list = 0;
+
 my @header_start = (
     '[color=DarkRed][big][big][b][i]',
     '[color=DarkRed][big][b][i]',
@@ -52,7 +56,7 @@ my @header_start = (
 my @header_end = (
     '[/i][/b][/big][/big][/color]',
     '[/i][/b][/big][/color]',
-    '[/i][/b]][/color]',
+    '[/i][/b][/color]',
     '[/b][/color]',
     '[/i][/color]',
     '[/color]'
@@ -79,6 +83,10 @@ while (<>) {
             output_paragraph $paragraph;
             $paragraph = "";
         }
+        if($code){
+            print '[/code]';
+            $code = 0;
+        }
         print "\[quote\]\n";
         $quote++;
     }
@@ -87,8 +95,49 @@ while (<>) {
             output_paragraph $paragraph;
             $paragraph = "";
         }
+        if($code){
+            print '[/code]';
+            $code = 0;
+        }
         print "\[\/quote\]\n";
         $quote--;
+    }
+
+    # Handle indented code
+
+    if(!$code_block && !$list && s/^( {4}|\t)//){
+        if(!$code){
+            if($paragraph ne ""){
+                output_paragraph $paragraph;
+                $paragraph = "";
+            }
+            print "\[code\]\n";
+        }
+        $code = 1;
+    }elsif($code){
+        print "\[\/code\]\n";
+        $code = 0;
+    }
+
+    if($code_block && /^```/){
+        print "\[\/code\]\n";
+        $code_block = 0;
+        next;
+    }
+
+    if($code || $code_block){
+        print;
+        next;
+    }
+
+    if(!$code_block && /^```/){
+        if($paragraph ne ""){
+            output_paragraph $paragraph;
+            $paragraph = "";
+        }
+        print "\[code\]\n";
+        $code_block = 1;
+        next;
     }
 
     # Handle headers
@@ -115,17 +164,17 @@ while (<>) {
         $header = 0;
     }elsif(/(\|[^|]+)+\|/){
         s/\|$//;
-        s/\|([^\|\n]+)/\[td\]$1\[\/td\]/g;
         if ($header){
+            s/\|([^\|\n]+)/\[th\]$1\[\/th\]/g;
             if($paragraph ne ""){
                 output_paragraph $paragraph;
                 $paragraph = "";
             }
             print "[table]\n";
-            print "[th]$_\[\/th\]\n";
         }else{
-            print "[tr]$_\[\/tr\]\n";
+            s/\|([^\|\n]+)/\[td\]$1\[\/td\]/g;
         }
+        print "[tr]$_\[\/tr\]\n";
     }else{
         if(!$header){
             print "\[\/table\]\n";
